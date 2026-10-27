@@ -76,12 +76,6 @@ Nothing.
 
 Acceptance: the three-card integration test (A → new shoot → green; B second body → `FX3 B`; C after midnight → same shoot) passes, and the tree preview matches what's created on disk.
 
-Previous Phase 3 next-task notes, kept for reference: Add an executable target `backed` (SwiftPM, PLAN D1) plus `scripts/build-app.sh` to assemble a `.app` (Info.plist with `LSUIElement`). It needs:
-- an `NSStatusItem` "b." with a worst-verdict dot;
-- an `NSPopover` that opens programmatically when a card appears (DiskArbitration `DARegisterDiskAppearedCallback`/`Disappeared` on a dispatch queue, with `NSWorkspace.didMountNotification` as fallback);
-- one verdict row per card (reading progress, then red/grey/green), the "Also plugged in" list, Open/Quit, a notification when done, and `SMAppService` launch at login.
-
-Turn the indexer and copier into actors with cancellation, and add a per-destination copy queue (SAFETY.md depends on one copy at a time per drive). Acceptance: mounting a fake card image opens the popover, which shows reading progress and then red. Ask the user about Q1 before implementing the read-only remount.
 
 ## Remaining Work
 
