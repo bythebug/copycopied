@@ -2,7 +2,7 @@
 
 ## Last Verified
 
-2026-10-27, after the rename to CopyCopied. `swift test` passed (28 tests). `swift build` and `scripts/build-app.sh` are clean. The renamed app launched and showed its "cc." status item. Phase 3 acceptance last passed before the rename (the code changes since are names, strings and the card-destination guard). Git is on `main`, remote https://github.com/bythebug/copycopied (private).
+2026-10-27, after the rename to CopyCopied. `swift test` passed (28 tests). `swift build` and `scripts/build-app.sh` are clean. Re-ran Phase 3 acceptance on the renamed app: inserting fake Card C auto-opened the popover (via the hidden-icon fallback anchor, which stayed open), showing "50 of 80 files aren't on T7 Shield yet. Don't format." and "Open CopyCopied". Git is on `main`, remote https://github.com/bythebug/copycopied (private).
 
 ## Project Goal
 
@@ -147,6 +147,9 @@ All verified 2026-10-27:
 - 2026-10-27 manual runs on fake images: the Phase 1 acceptance (red → hand-copied → green → unplugged → grey from memory) and the Phase 2 scenarios listed under Completed.
 
 ## Known Issues
+
+- Running the app binary without its bundle (`swift run CopyCopiedApp`) used to crash in `UNUserNotificationCenter`. It's now guarded; notifications only work from the built `.app`.
+- Accessibility (`System Events`) queries for the status item are unreliable on the dev Mac while its menu bar manager hides items. Verify the UI with screenshots instead.
 
 - Phase 3 UI paths not exercised by clicking: `Choose folder…` → copy → green (the shared `Offload.copyMissing` is unit-tested and its preflight was seen refusing on a full fake drive), role menus, launch-at-login toggle, notifications (they may need a properly signed app). None verified in the UI.
 - The orb is a breathing gradient placeholder. The particle orb is Phase 8. In one screenshot taken mid-resize the orb looked vertically offset; it was correct once settled.

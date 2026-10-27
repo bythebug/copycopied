@@ -160,7 +160,7 @@ final class AppModel {
 
     /// Notifies only when the popover is closed (spec 7.6).
     private func notify(_ title: String, _ body: String) {
-        guard !isPopoverShown() else { return }
+        guard !isPopoverShown(), Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body

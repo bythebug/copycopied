@@ -36,7 +36,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        // Notifications need an app bundle; the bare `swift run` binary has none and would crash here.
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        }
         refresh()
     }
 
