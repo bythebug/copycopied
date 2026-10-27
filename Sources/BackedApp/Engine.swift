@@ -37,10 +37,18 @@ actor Engine {
     /// Copies what's missing into `folder`. If its drive has no role yet it becomes a working drive,
     /// since that's where the user just chose to keep this card.
     func copy(cardRoot: URL, to folder: URL, progress: @Sendable (CopyEvent) -> Void) throws -> URL {
+        do { try Offload.refuseCardFolder(folder, cardRoot: cardRoot, store: store) } catch {
+            throw CopyFailure(message: "\(error)")
+        }
         let dest = Offload.destination(containing: folder)
-        if try store.volume(id: dest.id)?.role == nil { try store.setRole(.workingDrive, id: dest.id, name: dest.name) }
         let files = CardScanner.scan(cardRoot)
         let missing = try Matcher(store: store).check(cardRoot: cardRoot, files: files, drives: [dest])[0].missing
+        defer {
+            // After the card check above, so a card can never become a working drive.
+            if (try? store.volume(id: dest.id)?.role) ?? nil == nil {
+                try? store.setRole(.workingDrive, id: dest.id, name: dest.name)
+            }
+        }
         guard !missing.isEmpty else { return folder }
         let log = try Offload.newLog(cardName: cardRoot.lastPathComponent)
         do {

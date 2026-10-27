@@ -121,6 +121,20 @@ private func flipFirstByte(_ url: URL) {
         #expect(contents(drive.root) == ["A.MP4"])
     }
 
+    @Test func neverWritesIntoACard() throws {
+        let card = TempTree()
+        card.write("DCIM/MVI_0001.MP4")
+        card.write("DCIM/backup/x.MP4" + partialSuffix, Data("not ours to touch".utf8))
+        let before = contents(card.root)
+        let copier = Copier()
+        copier.readOnlyRoots = [card.root]
+        #expect(throws: CopyError.destinationIsCard(card.root.lastPathComponent)) {
+            try copier.copy([CopyRequest(source: card.root.appendingPathComponent("DCIM/MVI_0001.MP4"),
+                                         destination: card.root.appendingPathComponent("DCIM/backup/x.MP4"))])
+        }
+        #expect(contents(card.root) == before)  // nothing written, nothing swept
+    }
+
     @Test func sourceThatReadsDifferentlyFails() throws {
         let card = TempTree(), drive = TempTree()
         card.write("C0001.MP4")
@@ -182,6 +196,18 @@ private func flipFirstByte(_ url: URL) {
         // Recorded with their hashes, so the re-check needn't read them again.
         #expect(try store.indexedFiles(volumeID: dest.id).allSatisfy { $0.hash != nil && $0.path.hasPrefix("2026/Shoot/") })
         #expect(Verdict.from(total: 3, checks: try matcher.check(cardRoot: card.root, files: files, drives: [dest])).orb == .green)
+    }
+
+    /// Regression: a folder on the card itself made the card match itself and show green.
+    @Test func cardFolderIsRefusedBeforeMatching() throws {
+        let card = TempTree(), drive = TempTree(), store = try memoryStore()
+        #expect(throws: CopyError.destinationIsCard(card.root.lastPathComponent)) {
+            try Offload.refuseCardFolder(card.root.appendingPathComponent("backup"), cardRoot: card.root, store: store)
+        }
+        #expect(throws: CopyError.destinationIsCard(card.root.lastPathComponent)) {
+            try Offload.refuseCardFolder(card.root, cardRoot: card.root, store: store)
+        }
+        try Offload.refuseCardFolder(drive.root.appendingPathComponent("2026"), cardRoot: card.root, store: store)
     }
 
     @Test func pulledDriveIsExplainedPlainly() {

@@ -31,6 +31,7 @@ public enum CopyError: Error, CustomStringConvertible, Equatable {
     case tooLargeForFAT32(String)
     case verifyFailed(String)
     case sourceChanged(String)
+    case destinationIsCard(String)
 
     public var description: String {
         let gb = { (b: Int64) in ByteCountFormatter.string(fromByteCount: b, countStyle: .file) }
@@ -38,6 +39,7 @@ public enum CopyError: Error, CustomStringConvertible, Equatable {
         case let .notEnoughSpace(needed, free): return "Not enough space: needs \(gb(needed)), only \(gb(free)) free. Nothing was copied."
         case let .tooLargeForFAT32(f): return "\(f) is 4 GB or larger and the drive is FAT32, which can't hold it. Use an exFAT or APFS drive."
         case let .verifyFailed(f): return "\(f) didn't match the card after copying twice. It wasn't saved. Check the drive and try again."
+        case let .destinationIsCard(card): return "That folder is on \(card), a memory card. backed. never writes to cards. Choose a folder on a drive."
         case let .sourceChanged(f): return "\(f) read differently from the card than it did a moment ago. Check the card reader and try again."
         }
     }
@@ -47,6 +49,8 @@ public enum CopyError: Error, CustomStringConvertible, Equatable {
 public final class Copier {
     /// Test hook: runs on each written partial after it's synced, before it's verified (byte-flip test, spec §11).
     public var beforeVerify: (URL) -> Void = { _ in }
+    /// Card roots. Nothing is ever written, renamed or deleted under these (safety rule 1).
+    public var readOnlyRoots: [URL] = []
     let log: CopyLog?
 
     public init(log: CopyLog? = nil) { self.log = log }
@@ -74,6 +78,14 @@ public final class Copier {
     /// Assumes every destination is on one volume.
     public func copy(_ requests: [CopyRequest], progress: (CopyEvent) -> Void = { _ in }) throws -> [CopyOutcome] {
         guard let first = requests.first else { return [] }
+        // Checked before anything touches the disk, including the partial sweep below.
+        let real = { (u: URL) in u.standardizedFileURL.resolvingSymlinksInPath().path }
+        for r in requests {
+            let dst = real(r.destination)
+            if let card = readOnlyRoots.first(where: { dst == real($0) || dst.hasPrefix(real($0) + "/") }) {
+                throw CopyError.destinationIsCard(card.lastPathComponent)
+            }
+        }
         let sizes = requests.map { statFile(atPath: $0.source.path)?.size ?? 0 }
         if let space = Self.space(at: first.destination),
            let e = Self.preflight(sizes: sizes, free: space.free, fsType: space.fsType) {

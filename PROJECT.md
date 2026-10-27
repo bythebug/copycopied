@@ -56,6 +56,7 @@ From PLAN.md §6. All are still unanswered:
   - Shared CLI/app steps moved into `BackedCore/Offload.swift`.
   - Verified: inserting fake Card C opened the popover by itself → "Reading 28 of 80 files on the card…" (grey) → "50 of 80 files aren't on T7 Shield yet. Don't format." (red dot). Card A showed "129 of 148…", which exposed the walker bug below.
 - **Bug fixed in Phase 3 (safety-relevant):** `walkFiles` called `skipDescendants()` on junk *files* (`.DS_Store`, `._*`), which skipped the whole enclosing folder. On a card this could have dropped clips from the scan and produced a false green. Fixed, with regression test `junkFilesDoNotHideTheirFolder` (it failed before the fix).
+- **Guard: backed. never writes to a card (2026-10-27, user request).** Choosing a folder on a card (app `Choose folder…`, CLI `copy --to`, CLI `status --drive`) is refused before matching, because before this a card compared with itself showed a **false green**. The copier also refuses card destinations via `readOnlyRoots`. Tests: `neverWritesIntoACard`, `cardFolderIsRefusedBeforeMatching`; also checked on a fake card image.
 - Docs: `docs/SAFETY.md`, `README.md`.
 
 ## In Progress
@@ -131,7 +132,7 @@ No external packages. `CXXHash` is vendored. System frameworks used: Foundation,
 
 All verified 2026-10-27:
 - Build: `swift build`
-- Test: `swift test` (26 tests)
+- Test: `swift test` (28 tests)
 - App: `scripts/build-app.sh` → `build/backed.app`; run with `BACKED_DB=<path> build/backed.app/Contents/MacOS/backed` to use a test database
 - CLI: `.build/debug/backed-cli volumes | role <path> working|backup|card|ignored|auto | status [--card P] [--drive P] | copy --to <folder> [--card P] [--keep-structure]` plus `--db <path>`
 - Fake media: `scripts/make-fake-card.sh sony|canon|gopro|drive "<Name>" [clips] [kb]` (creates and mounts the image in `fake-cards/`); detach with `hdiutil detach "/Volumes/<Name>"`

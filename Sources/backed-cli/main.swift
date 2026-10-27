@@ -75,6 +75,10 @@ do {
 
         let matcher = Matcher(store: store)
         for card in cards {
+            // A card is never its own (or another card's) backup; matching it would look green.
+            for d in drives where d.root != nil {
+                do { try Offload.refuseCardFolder(d.root!, cardRoot: card.root, store: store) } catch { fail("\(error)") }
+            }
             let files = CardScanner.scan(card.root)
             let total = files.filter(\.kind.isRelevant).count
             let tty = isatty(STDERR_FILENO) == 1
@@ -99,6 +103,7 @@ do {
         guard cardRoots.count == 1, let cardRoot = cardRoots.first else {
             fail(cardRoots.isEmpty ? "No card connected." : "Several cards connected; pick one with --card <path>.")
         }
+        do { try Offload.refuseCardFolder(to, cardRoot: cardRoot, store: store) } catch { fail("\(error)") }
         let dest = Offload.destination(containing: to)
         let matcher = Matcher(store: store)
         let files = CardScanner.scan(cardRoot)

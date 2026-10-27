@@ -19,6 +19,18 @@ public enum Offload {
         Volumes.containing(folder)?.destination ?? Volumes.destination(for: folder)
     }
 
+    /// Throws when `folder` is on the card being offloaded or any other mounted card. Call before matching:
+    /// a card compared against itself looks fully backed (false green), and nothing may be written there (rule 1).
+    public static func refuseCardFolder(_ folder: URL, cardRoot: URL, store: Store) throws {
+        let roles = Dictionary(try store.volumes().compactMap { r in r.role.map { (r.id, $0) } }, uniquingKeysWith: { a, _ in a })
+        let real = { (u: URL) in u.standardizedFileURL.resolvingSymlinksInPath().path }
+        let f = real(folder)
+        let cards = [cardRoot] + Volumes.mounted().filter { $0.isCard(role: roles[$0.id]) }.map(\.url)
+        if let card = cards.first(where: { f == real($0) || f.hasPrefix(real($0) + "/") }) {
+            throw CopyError.destinationIsCard(card.lastPathComponent)
+        }
+    }
+
     public static func newLog(cardName: String) throws -> CopyLog {
         let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         return try CopyLog(url: Store.defaultURL().deletingLastPathComponent()
@@ -35,7 +47,10 @@ public enum Offload {
             CopyRequest(source: cardRoot.appendingPathComponent($0.path),
                         destination: folder.appendingPathComponent(keepStructure ? $0.path : ($0.path as NSString).lastPathComponent))
         }
-        let outcomes = try Copier(log: log).copy(requests, progress: progress)
+        let copier = Copier(log: log)
+        let roles = Dictionary(try store.volumes().compactMap { r in r.role.map { (r.id, $0) } }, uniquingKeysWith: { a, _ in a })
+        copier.readOnlyRoots = [cardRoot] + Volumes.mounted().filter { $0.isCard(role: roles[$0.id]) }.map(\.url)
+        let outcomes = try copier.copy(requests, progress: progress)
         let indexer = Indexer(store: store)
         let root = dest.root!.standardizedFileURL.resolvingSymlinksInPath().path
         for o in outcomes {
