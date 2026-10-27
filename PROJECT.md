@@ -145,11 +145,19 @@ All verified 2026-10-27:
 
 ## Verification
 
+- 2026-10-27 **Release 0.3.0 shipped**: https://github.com/bythebug/copycopied/releases/tag/v0.3.0 with cask `bythebug/tap/copycopied` (tap commit "copycopied 0.3.0").
+  - The downloaded zip's sha256 matches the cask. It holds a universal (x86_64 + arm64) app, version 0.3.0, with icon, and passes `codesign --verify`.
+  - `brew style` reported no offenses; `brew audit --cask --online` reported no problems; `brew install --cask --dry-run` would install it. The cask wasn't actually installed on the dev Mac.
+
 - 2026-10-27 `swift test`: 23/23 passed. Covers the xxh3 reference vector, chunked vs one-shot hashing, scanning and classification, matching (same name with different content, renamed copies), memory never green, rehash on change, partials ignored, spec copy text, copy and date preservation, clashes, case-insensitive clashes, identical files at the target name, bit flip, re-copy, cancel, stale partials, swept partials, source changed, preflight, log, copy → green.
 - 2026-10-27 Phase 3: launched the built app, attached fake card images. The popover auto-opened with reading progress, then the red verdict. The status item showed the dot (checked via Accessibility title "b. ●" and screenshots). Popover auto-open was seen both with the icon visible and with it hidden; the `hidesOnDeactivate` fix for the hidden case was rebuilt but only re-verified with the icon visible.
 - 2026-10-27 manual runs on fake images: the Phase 1 acceptance (red → hand-copied → green → unplugged → grey from memory) and the Phase 2 scenarios listed under Completed.
 
 ## Known Issues
+
+- Not notarized (no Developer ID). Users must run `xattr -dr com.apple.quarantine /Applications/CopyCopied.app` (shown as a cask caveat). Notarization needs a Developer ID (Q3).
+- Homebrew 7 makes third-party casks "trusted" on first explicit install. `brew install --cask bythebug/tap/copycopied` does this automatically; `brew info`/`audit` on an untrusted tap need `brew trust` first.
+- The repo has no LICENSE file, so the public source is "all rights reserved" by default.
 
 - Running the app binary without its bundle (`swift run CopyCopiedApp`) used to crash in `UNUserNotificationCenter`. It's now guarded; notifications only work from the built `.app`.
 - Accessibility (`System Events`) queries for the status item are unreliable on the dev Mac while its menu bar manager hides items. Verify the UI with screenshots instead.
@@ -182,6 +190,7 @@ None. Q2 (re-hash before green) and Q3 (signing team) are still open; Q3 blocks 
 
 ## Session Progress
 
+- 2026-10-27, session 4: made the repo public; universal versioned build; `scripts/release.sh`; shipped 0.3.0 via GitHub release and the `bythebug/tap` cask.
 - 2026-10-27, session 3: decided cards stay writable (no read-only remount); added the never-write-to-card guard (fixed a false green when a card was chosen as its own destination); renamed the product to CopyCopied; added the app icon (`scripts/make-icon.swift` → `assets/`), wired into `build-app.sh`; renamed the GitHub repo.
 - 2026-10-27, session 2: created and pushed the private GitHub repo; built Phase 3, the menu bar app.
   - Found and fixed: the walker bug that skipped folders containing junk files (safety-relevant); the popover not opening when the icon is hidden by the notch or a menu bar manager; the fallback anchor panel hiding when the app is inactive.
