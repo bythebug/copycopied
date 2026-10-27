@@ -39,7 +39,7 @@ public enum CopyError: Error, CustomStringConvertible, Equatable {
         case let .notEnoughSpace(needed, free): return "Not enough space: needs \(gb(needed)), only \(gb(free)) free. Nothing was copied."
         case let .tooLargeForFAT32(f): return "\(f) is 4 GB or larger and the drive is FAT32, which can't hold it. Use an exFAT or APFS drive."
         case let .verifyFailed(f): return "\(f) didn't match the card after copying twice. It wasn't saved. Check the drive and try again."
-        case let .destinationIsCard(card): return "That folder is on \(card), a memory card. backed. never writes to cards. Choose a folder on a drive."
+        case let .destinationIsCard(card): return "That folder is on \(card), a memory card. CopyCopied never writes to cards. Choose a folder on a drive."
         case let .sourceChanged(f): return "\(f) read differently from the card than it did a moment ago. Check the card reader and try again."
         }
     }
@@ -98,7 +98,7 @@ public final class Copier {
         // Keep the Mac awake while copying (PLAN.md D11). Lid-close sleep still happens; resume covers it.
         var assertion = IOPMAssertionID(0)
         IOPMAssertionCreateWithName("PreventUserIdleSystemSleep" as CFString, IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                    "backed. is copying a card" as CFString, &assertion)
+                                    "CopyCopied is copying a card" as CFString, &assertion)
         defer { IOPMAssertionRelease(assertion) }
 
         // Partials left by an interrupted run (drive pulled, crash) are ours to delete.
@@ -180,10 +180,10 @@ public final class Copier {
     private func writePartial(from src: URL, to partial: URL) throws -> String {
         unlink(partial.path)  // a stale partial from an interrupted run is ours to remove
         let input = open(src.path, O_RDONLY | O_NOFOLLOW)
-        guard input >= 0 else { throw BackedError.io(op: "open", path: src.path, errno: errno) }
+        guard input >= 0 else { throw CoreError.io(op: "open", path: src.path, errno: errno) }
         defer { close(input) }
         let output = open(partial.path, O_WRONLY | O_CREAT | O_EXCL, mode_t(0o644))
-        guard output >= 0 else { throw BackedError.io(op: "create", path: partial.path, errno: errno) }
+        guard output >= 0 else { throw CoreError.io(op: "create", path: partial.path, errno: errno) }
         defer { close(output) }
         // Keep written pages out of the cache so the read-back has to come from the disk.
         // TODO(verify): measure on real exFAT/APFS drives that F_NOCACHE read-back hits the device.
@@ -197,7 +197,7 @@ public final class Copier {
             let n = read(input, buf.baseAddress, hashChunkSize)
             if n < 0 {
                 if errno == EINTR { continue }
-                throw BackedError.io(op: "read", path: src.path, errno: errno)
+                throw CoreError.io(op: "read", path: src.path, errno: errno)
             }
             if n == 0 { break }
             hasher.update(UnsafeRawBufferPointer(rebasing: buf[0..<n]))
@@ -206,7 +206,7 @@ public final class Copier {
                 let w = write(output, buf.baseAddress! + off, n - off)
                 if w < 0 {
                     if errno == EINTR { continue }
-                    throw BackedError.io(op: "write", path: partial.path, errno: errno)
+                    throw CoreError.io(op: "write", path: partial.path, errno: errno)
                 }
                 off += w
             }
@@ -214,7 +214,7 @@ public final class Copier {
         if fcntl(output, F_FULLFSYNC) != 0 {
             // TODO(verify): which destination filesystems refuse F_FULLFSYNC (exFAT?).
             log?.write("fsync-fallback", ["path": partial.path, "errno": String(errno)])
-            guard fsync(output) == 0 else { throw BackedError.io(op: "fsync", path: partial.path, errno: errno) }
+            guard fsync(output) == 0 else { throw CoreError.io(op: "fsync", path: partial.path, errno: errno) }
         }
         return hasher.digest()
     }
@@ -233,7 +233,7 @@ public final class Copier {
                 rc = clash ? -1 : rename(partial.path, candidate.path)
             }
             if rc == 0 { return (candidate, false) }
-            guard clash else { throw BackedError.io(op: "rename", path: candidate.path, errno: errno) }
+            guard clash else { throw CoreError.io(op: "rename", path: candidate.path, errno: errno) }
             if (try? hashFile(atPath: candidate.path, uncached: true)) == hash { return (candidate, true) }
             n += 1
             candidate = Self.numbered(wanted, n)

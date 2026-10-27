@@ -1,10 +1,10 @@
-@testable import BackedCore
+@testable import CopyCopiedCore
 import Foundation
 import Testing
 
 /// A throwaway folder tree; files get random content unless given bytes.
 final class TempTree {
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent("backed-test-\(UUID().uuidString)")
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("copycopied-test-\(UUID().uuidString)")
 
     init() { try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true) }
     deinit { try? FileManager.default.removeItem(at: root) }

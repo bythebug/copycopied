@@ -45,7 +45,7 @@ public struct Indexer {
         }
     }
 
-    /// Records a file backed. just wrote and verified uncached, so it needs no re-hash.
+    /// Records a file CopyCopied just wrote and verified uncached, so it needs no re-hash.
     public func record(_ dest: Destination, path: String, hash: String) throws {
         guard let root = dest.root, let st = statFile(atPath: root.appendingPathComponent(path).path) else { return }
         try store.touchVolume(id: dest.id, name: dest.name)

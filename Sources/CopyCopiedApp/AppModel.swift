@@ -1,5 +1,5 @@
 import AppKit
-import BackedCore
+import CopyCopiedCore
 import Observation
 import UserNotifications
 
@@ -37,7 +37,7 @@ final class AppModel {
     init() {
         do { engine = try Engine() } catch {
             engine = nil
-            startupError = "Couldn't open backed.'s database: \(error)"
+            startupError = "Couldn't open CopyCopied's database: \(error)"
         }
     }
 

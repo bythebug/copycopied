@@ -1,4 +1,4 @@
-@testable import BackedCore
+@testable import CopyCopiedCore
 import Foundation
 import Testing
 
@@ -212,9 +212,9 @@ private func flipFirstByte(_ url: URL) {
 
     @Test func pulledDriveIsExplainedPlainly() {
         let card = URL(fileURLWithPath: "/Volumes/Card A")
-        let e = BackedError.io(op: "write", path: "/Volumes/T7 Shield/x.MP4.backed-partial", errno: EIO)
+        let e = CoreError.io(op: "write", path: "/Volumes/T7 Shield/x.MP4.copycopied-partial", errno: EIO)
         #expect(Offload.explain(e, cardRoot: card, driveName: "T7 Shield").hasPrefix("Lost contact with T7 Shield"))
-        let c = BackedError.io(op: "read", path: "/Volumes/Card A/DCIM/x.MP4", errno: ENXIO)
+        let c = CoreError.io(op: "read", path: "/Volumes/Card A/DCIM/x.MP4", errno: ENXIO)
         #expect(Offload.explain(c, cardRoot: card, driveName: "T7 Shield").hasPrefix("Lost contact with Card A"))
     }
 }

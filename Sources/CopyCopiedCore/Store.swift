@@ -33,15 +33,15 @@ public final class Store {
     public static func defaultURL() throws -> URL {
         let dir = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                               appropriateFor: nil, create: true)
-            .appendingPathComponent("backed", isDirectory: true)
+            .appendingPathComponent("CopyCopied", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("backed.sqlite")
+        return dir.appendingPathComponent("copycopied.sqlite")
     }
 
     public init(path: String) throws {
         guard sqlite3_open(path, &db) == SQLITE_OK else {
             defer { sqlite3_close(db) }
-            throw BackedError.db(String(cString: sqlite3_errmsg(db)))
+            throw CoreError.db(String(cString: sqlite3_errmsg(db)))
         }
         try exec("""
             PRAGMA journal_mode=WAL;
@@ -105,7 +105,7 @@ public final class Store {
         }
     }
 
-    private func error() -> BackedError { .db(String(cString: sqlite3_errmsg(db))) }
+    private func error() -> CoreError { .db(String(cString: sqlite3_errmsg(db))) }
 
     // MARK: volumes
 

@@ -1,7 +1,7 @@
 import CXXHash
 import Foundation
 
-public enum BackedError: Error, CustomStringConvertible, Equatable {
+public enum CoreError: Error, CustomStringConvertible, Equatable {
     case io(op: String, path: String, errno: Int32)
     case db(String)
 
@@ -35,7 +35,7 @@ public let hashChunkSize = 8 << 20
 /// Hashes a file read-only. `uncached` sets F_NOCACHE so the bytes come from the disk, not the page cache.
 public func hashFile(atPath path: String, uncached: Bool) throws -> String {
     let fd = open(path, O_RDONLY | O_NOFOLLOW)
-    guard fd >= 0 else { throw BackedError.io(op: "open", path: path, errno: errno) }
+    guard fd >= 0 else { throw CoreError.io(op: "open", path: path, errno: errno) }
     defer { close(fd) }
     if uncached { _ = fcntl(fd, F_NOCACHE, 1) }
 
@@ -47,7 +47,7 @@ public func hashFile(atPath path: String, uncached: Bool) throws -> String {
         let n = read(fd, buf.baseAddress, hashChunkSize)
         if n < 0 {
             if errno == EINTR { continue }
-            throw BackedError.io(op: "read", path: path, errno: errno)
+            throw CoreError.io(op: "read", path: path, errno: errno)
         }
         if n == 0 { break }
         hasher.update(UnsafeRawBufferPointer(rebasing: buf[0..<n]))

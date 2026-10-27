@@ -19,7 +19,7 @@ let junkNames: Set<String> = [
     ".TemporaryItems", ".DocumentRevisions-V100",
 ]
 
-public let partialSuffix = ".backed-partial"
+public let partialSuffix = ".copycopied-partial"
 
 func isJunk(_ name: String) -> Bool {
     junkNames.contains(name) || name.hasPrefix("._") || name.hasSuffix(partialSuffix)

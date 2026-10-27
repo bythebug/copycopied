@@ -1,5 +1,5 @@
 import AppKit
-import BackedCore
+import CopyCopiedCore
 import ServiceManagement
 import SwiftUI
 
@@ -143,7 +143,7 @@ struct PopoverView: View {
 
             Divider()
             HStack {
-                Button("Open backed", action: openMain).buttonStyle(.link)
+                Button("Open CopyCopied", action: openMain).buttonStyle(.link)
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }
             }
@@ -169,7 +169,7 @@ struct MainView: View {
 
     var body: some View {
         Form {
-            Toggle("Open backed. when you log in", isOn: $launchAtLogin)
+            Toggle("Open CopyCopied when you log in", isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { _, on in
                     do {
                         if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }

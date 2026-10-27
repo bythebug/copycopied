@@ -1,4 +1,4 @@
-import BackedCore
+import CopyCopiedCore
 import Foundation
 
 /// Owns the database and does all disk work off the main thread. One call at a time, which also means
@@ -7,8 +7,8 @@ import Foundation
 actor Engine {
     private let store: Store
 
-    /// `BACKED_DB` points the app at another database (used for fake-card testing).
-    init() throws { store = try Store(path: ProcessInfo.processInfo.environment["BACKED_DB"] ?? Store.defaultURL().path) }
+    /// `COPYCOPIED_DB` points the app at another database (used for fake-card testing).
+    init() throws { store = try Store(path: ProcessInfo.processInfo.environment["COPYCOPIED_DB"] ?? Store.defaultURL().path) }
 
     func roles() throws -> [String: VolumeRole] {
         Dictionary(try store.volumes().compactMap { r in r.role.map { (r.id, $0) } }, uniquingKeysWith: { a, _ in a })

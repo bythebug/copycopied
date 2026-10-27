@@ -1,16 +1,16 @@
-# backed. — Plan (Phase 0)
+# CopyCopied — Plan (Phase 0)
 
 Status: written 2026-10-27. The user said "build" without reviewing it, so the **Recommended** choices below are the working defaults. Any of them can be overturned; each one notes where it would bite.
 
 ## 1. Architecture
 
 ```
-┌──────────── backed (app, Phase 3+) ─────────────┐   ┌──── backed-cli ────┐
+┌──────────── backed (app, Phase 3+) ─────────────┐   ┌──── copycopied-cli ────┐
 │ NSStatusItem + NSPopover, SwiftUI views, orb    │   │ status, role, copy │
 │ DiskArbitration session → CardSession actors    │   └─────────┬──────────┘
 └───────────────────────┬─────────────────────────┘             │
                         ▼                                       ▼
-┌──────────────────────── BackedCore (no UI imports) ───────────────────────┐
+┌──────────────────────── CopyCopiedCore (no UI imports) ───────────────────────┐
 │ Hashing      xxh3-128 streaming over 8 MB chunks, optional F_NOCACHE      │
 │ Volumes      mounted-volume snapshot (FileManager); DA lives in the app   │
 │ CardScanner  card heuristics, walk, junk filter, kind classification      │
@@ -37,14 +37,14 @@ Data flow for "Is it backed?": scan card (stat only) → for each relevant file,
 | D4 | Min macOS | **14** | Nothing needed from 15 or later. `SMAppService`, Canvas and `TimelineView` all exist on 14. |
 | D5 | Sandbox | **Not sandboxed** (agree with the spec) | Watching every volume, DiskArbitration mount approval, FSEvents on arbitrary drives and moving files out of `~/Downloads` would each need user-picked security-scoped bookmarks. That would break "plug in and it just knows". Cost: no Mac App Store and a bigger blast radius, so the read-only and never-overwrite rules are enforced in code and tests (see SAFETY.md). |
 | D6 | Default copy layout | **Flat camera folder, sidecars beside clips** (`Footage/FX3/C0001.MP4` + `C0001M01.XML`). **Card structure is kept under a roll folder** automatically for formats that depend on their folder layout. | Premiere/Resolve relink Sony XML metadata by matching basename in the same folder (assumption, TODO(verify)). Proxies are attached by filename, so they can live in `Footage/FX3/Proxy/`. AVCHD (`PRIVATE/AVCHD`), XDCAM/XF MXF `CLIP`/`CONTENTS` and P2 trees are read by NLEs as a whole structure. Flattening them breaks spanned clips (TODO(verify) per format in cameras.md). |
-| D7 | Card metadata writes | **DECIDED 2026-10-27 (user): cards stay writable, mounted the way macOS normally does.** A read-only remount would stop users deleting files from Finder, which breaks normal behaviour. backed. itself still never writes to cards. Original recommendation: remount card volumes read-only through a DiskArbitration mount-approval callback (setting on by default). | `mdutil -i off` writes to the volume, so it's not allowed. A read-only mount stops Finder `.DS_Store`/`._`, Spotlight `.Spotlight-V100` and `.fseventsd` writes at the kernel. Cost: the user can't delete files from the card on the Mac while backed. runs (they shouldn't anyway). **Question Q1.** |
+| D7 | Card metadata writes | **DECIDED 2026-10-27 (user): cards stay writable, mounted the way macOS normally does.** A read-only remount would stop users deleting files from Finder, which breaks normal behaviour. CopyCopied itself still never writes to cards. Original recommendation: remount card volumes read-only through a DiskArbitration mount-approval callback (setting on by default). | `mdutil -i off` writes to the volume, so it's not allowed. A read-only mount stops Finder `.DS_Store`/`._`, Spotlight `.Spotlight-V100` and `.fseventsd` writes at the kernel. Cost: the user can't delete files from the card on the Mac while CopyCopied runs (they shouldn't anyway). **Question Q1.** |
 | D8 | iPhone | **(a)** external SSD used for iPhone ProRes recording is handled as a card by the generic profile. **(b)** "Treat folder as card" for already-imported files. **No** PTP/ImageCaptureCore in v1. | An iPhone doesn't mount as a volume, and PTP import is a separate product. |
 | D9 | Which files count | Relevant = `video, photo, audio, sidecar, proxy`. `other` (camera database files such as Sony `MEDIAPRO.XML`/`STATUS.BIN`, TODO(verify)) is listed but not required for green. | Camera catalog files get rewritten by the camera and aren't media. |
 | D10 | Trusting cached destination hashes | Hashes are always computed with `F_NOCACHE`. A cached hash is reused while `(volumeUUID, path, size, mtime, inode)` is unchanged **and the drive is connected now** (re-stat'd during this check). | This is the spec §4 cache. **Question Q2:** should we re-hash the matched destination files before green on cards about to be formatted? It's safer but costs one full read. |
 | D11 | Sleep mid-copy | `IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep)` while copying. Closing the lid still sleeps, so resume handles it. | |
 | D12 | Verify retry | Re-read once (uncached). If it still differs, re-copy once. If that fails, hard red naming the file. | The spec says "retry once" without saying what to retry. |
 
-## 3. Module list (BackedCore)
+## 3. Module list (CopyCopiedCore)
 
 `Hash.swift`, `Volume.swift`, `CardScanner.swift`, `Store.swift`, `Indexer.swift`, `Matcher.swift` (+ `Verdict`) in Phase 1. Then `Copier.swift`/`CopyLog.swift` (2), `Planner.swift`/`ShootDay.swift`/`ClockCheck.swift`/`BodyLabels.swift` (4), and `Profiles/*.swift` (6). The indexer and copier become actors when the app starts driving them concurrently (Phase 3). Phase 1 code is synchronous and checks `Task.isCancelled` in every chunk loop.
 

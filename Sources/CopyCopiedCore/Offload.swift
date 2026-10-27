@@ -61,7 +61,7 @@ public enum Offload {
 
     /// Plain-language reason for a failed copy. I/O or device errors mid-copy almost always mean something was unplugged.
     public static func explain(_ error: Error, cardRoot: URL, driveName: String) -> String {
-        if case let BackedError.io(_, path, err) = error, [EIO, ENXIO, ENODEV, ENOENT].contains(err) {
+        if case let CoreError.io(_, path, err) = error, [EIO, ENXIO, ENODEV, ENOENT].contains(err) {
             let who = path.hasPrefix(cardRoot.path) ? cardRoot.lastPathComponent : driveName
             return "Lost contact with \(who) while copying (was it unplugged?). Plug it back in and copy again; only what's still missing will be copied."
         }

@@ -1,5 +1,5 @@
 import AppKit
-import BackedCore
+import CopyCopiedCore
 import SwiftUI
 import UserNotifications
 
@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
-        statusItem.button?.setAccessibilityLabel("backed.")
+        statusItem.button?.setAccessibilityLabel("CopyCopied")
 
         model.onCardInserted = { [weak self] in self?.showPopover() }
         model.onChange = { [weak self] in self?.updateIcon() }
@@ -42,9 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refresh() { Task { await model.refresh() } }
 
-    /// "b." with a dot in the worst verdict's colour; no dot when no card is in (spec 6.1).
+    /// "cc." with a dot in the worst verdict's colour; no dot when no card is in (spec 6.1).
     private func updateIcon() {
-        let title = NSMutableAttributedString(string: "b.", attributes: [.font: NSFont.systemFont(ofSize: 14, weight: .heavy)])
+        let title = NSMutableAttributedString(string: "cc.", attributes: [.font: NSFont.systemFont(ofSize: 14, weight: .heavy)])
         if let worst = model.worst {
             title.append(NSAttributedString(string: " ●", attributes: [
                 .font: NSFont.systemFont(ofSize: 9), .foregroundColor: worst.nsColor, .baselineOffset: 1.5,
@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.level = .statusBar
-        panel.hidesOnDeactivate = false  // backed. is rarely the active app; a hiding anchor would close the popover
+        panel.hidesOnDeactivate = false  // CopyCopied is rarely the active app; a hiding anchor would close the popover
         panel.orderFrontRegardless()
         anchor = panel
         return panel
@@ -88,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.performClose(nil)
         if mainWindow == nil {
             let w = NSWindow(contentViewController: NSHostingController(rootView: MainView()))
-            w.title = "backed."
+            w.title = "CopyCopied"
             w.isReleasedWhenClosed = false
             mainWindow = w
         }

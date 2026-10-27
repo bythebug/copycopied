@@ -1,16 +1,16 @@
-import BackedCore
+import CopyCopiedCore
 import Foundation
 
 let usage = """
     usage:
-      backed-cli volumes                                   list mounted volumes and their roles
-      backed-cli role <volume-path> working|backup|card|ignored|auto
-      backed-cli status [--card <path>]... [--drive <path>]...
+      copycopied-cli volumes                                   list mounted volumes and their roles
+      copycopied-cli role <volume-path> working|backup|card|ignored|auto
+      copycopied-cli status [--card <path>]... [--drive <path>]...
                          verdict for each card; defaults: detected cards vs. drives marked working/backup
-      backed-cli copy --to <folder> [--card <path>] [--keep-structure]
+      copycopied-cli copy --to <folder> [--card <path>] [--keep-structure]
                          copy what's missing from the card (by content) into <folder>, verify each file;
                          files go flat into <folder> unless --keep-structure keeps the card's folders
-    options: --db <path>  use another database (default ~/Library/Application Support/backed/backed.sqlite)
+    options: --db <path>  use another database (default ~/Library/Application Support/CopyCopied/copycopied.sqlite)
     """
 
 func fail(_ msg: String) -> Never {
