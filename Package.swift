@@ -13,6 +13,8 @@ let package = Package(
         .target(name: "CXXHash"),
         .target(name: "BackedCore", dependencies: ["CXXHash"]),
         .executableTarget(name: "backed-cli", dependencies: ["BackedCore"]),
+        // Menu bar app; scripts/build-app.sh wraps the binary in backed.app (PLAN.md D1).
+        .executableTarget(name: "BackedApp", dependencies: ["BackedCore"]),
         .testTarget(name: "BackedCoreTests", dependencies: ["BackedCore"]),
     ]
 )

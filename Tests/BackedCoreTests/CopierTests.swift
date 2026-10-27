@@ -167,3 +167,28 @@ private func flipFirstByte(_ url: URL) {
         #expect(v == .backed(total: 3, drives: ["T7 Shield"]))
     }
 }
+
+@Suite struct OffloadTests {
+    @Test func copyMissingRecordsIndexSoRecheckIsGreen() throws {
+        let card = TempTree(), drive = TempTree(), store = try memoryStore()
+        for i in 1...3 { card.write("DCIM/100CANON/MVI_000\(i).MP4") }
+        let files = CardScanner.scan(card.root)
+        let matcher = Matcher(store: store)
+        let dest = drive.dest
+        let missing = try matcher.check(cardRoot: card.root, files: files, drives: [dest])[0].missing
+        let out = try Offload.copyMissing(cardRoot: card.root, missing: missing, to: drive.root.appendingPathComponent("2026/Shoot"),
+                                          dest: dest, store: store, log: nil)
+        #expect(out.count == 3)
+        // Recorded with their hashes, so the re-check needn't read them again.
+        #expect(try store.indexedFiles(volumeID: dest.id).allSatisfy { $0.hash != nil && $0.path.hasPrefix("2026/Shoot/") })
+        #expect(Verdict.from(total: 3, checks: try matcher.check(cardRoot: card.root, files: files, drives: [dest])).orb == .green)
+    }
+
+    @Test func pulledDriveIsExplainedPlainly() {
+        let card = URL(fileURLWithPath: "/Volumes/Card A")
+        let e = BackedError.io(op: "write", path: "/Volumes/T7 Shield/x.MP4.backed-partial", errno: EIO)
+        #expect(Offload.explain(e, cardRoot: card, driveName: "T7 Shield").hasPrefix("Lost contact with T7 Shield"))
+        let c = BackedError.io(op: "read", path: "/Volumes/Card A/DCIM/x.MP4", errno: ENXIO)
+        #expect(Offload.explain(c, cardRoot: card, driveName: "T7 Shield").hasPrefix("Lost contact with Card A"))
+    }
+}

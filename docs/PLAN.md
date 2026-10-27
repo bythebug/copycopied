@@ -59,6 +59,9 @@ Data flow for "Is it backed?": scan card (stat only) → for each relevant file,
 
 ## 5. Where I disagree with or extend the spec
 
+- **Mount detection (Phase 3):** the app uses `NSWorkspace` mount, unmount and rename notifications for now. DiskArbitration comes with the read-only remount (D7/Q1), since that needs a DA mount-approval callback anyway.
+- **Hidden menu bar icon:** on notched Macs and crowded menu bars the status item can be off-screen. In that case the auto-opened popover anchors to an invisible panel under the top-right corner.
+
 - GRDB → system SQLite (D3). xcodegen → SwiftPM (D1).
 - "Block Spotlight/Finder writes" is best done with a read-only mount (D7), which the spec didn't mention.
 - §7.6 "keep the original creation date" uses `setattrlist`/`URLResourceValues.creationDate`. exFAT keeps it; FAT32 keeps it only to 2 s precision.

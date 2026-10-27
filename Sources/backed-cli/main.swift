@@ -66,12 +66,10 @@ do {
             if !explicit.isEmpty { return explicit.map { (url($0).lastPathComponent, url($0)) } }
             return mounted.filter { $0.isCard(role: known[$0.id]?.role) }.map { ($0.name, $0.url) }
         }()
-        let drives: [Destination] = {
+        let drives: [Destination] = try {
             let explicit = take("--drive")
             if !explicit.isEmpty { return explicit.map { Volumes.destination(for: url($0)) } }
-            return known.values.filter { $0.role == .workingDrive || $0.role == .backupDrive }
-                .sorted { $0.name < $1.name }
-                .map { r in Destination(id: r.id, name: r.name, root: mounted.first { $0.id == r.id }?.url) }
+            return try Offload.drives(store: store, mounted: mounted)
         }()
         if cards.isEmpty { print("No card connected.") }
 
@@ -101,25 +99,19 @@ do {
         guard cardRoots.count == 1, let cardRoot = cardRoots.first else {
             fail(cardRoots.isEmpty ? "No card connected." : "Several cards connected; pick one with --card <path>.")
         }
-        // Match against the whole drive holding <folder>, so files already anywhere on it aren't copied again.
-        let dest = Volumes.containing(to)?.destination ?? Volumes.destination(for: to)
+        let dest = Offload.destination(containing: to)
         let matcher = Matcher(store: store)
         let files = CardScanner.scan(cardRoot)
         let total = files.filter(\.kind.isRelevant).count
         let missing = try matcher.check(cardRoot: cardRoot, files: files, drives: [dest])[0].missing
 
         if !missing.isEmpty {
-            let stamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            let log = try CopyLog(url: Store.defaultURL().deletingLastPathComponent()
-                .appendingPathComponent("logs/\(stamp) \(cardRoot.lastPathComponent).jsonl"))
-            let requests = missing.map {
-                CopyRequest(source: cardRoot.appendingPathComponent($0.path),
-                            destination: to.appendingPathComponent(keepStructure ? $0.path : ($0.path as NSString).lastPathComponent))
-            }
+            let log = try Offload.newLog(cardName: cardRoot.lastPathComponent)
             let tty = isatty(STDERR_FILENO) == 1
             let outcomes: [CopyOutcome]
             do {
-                outcomes = try Copier(log: log).copy(requests) { e in
+                outcomes = try Offload.copyMissing(cardRoot: cardRoot, missing: missing, to: to, dest: dest,
+                                                   keepStructure: keepStructure, store: store, log: log) { e in
                     guard tty else { return }
                     let v: Verdict = switch e {
                     case let .copying(n, t, _): .copying(n: n, total: t)
@@ -130,20 +122,12 @@ do {
                 if tty { FileHandle.standardError.write(Data("\r\u{1B}[K".utf8)) }
             } catch {
                 if isatty(STDERR_FILENO) == 1 { FileHandle.standardError.write(Data("\n".utf8)) }
-                // I/O or device errors mid-copy almost always mean the card or drive was pulled.
-                var reason = "\(error)"
-                if case let BackedError.io(_, path, err) = error, [EIO, ENXIO, ENODEV, ENOENT].contains(err) {
-                    let who = path.hasPrefix(cardRoot.path) ? cardRoot.lastPathComponent : dest.name
-                    reason = "Lost contact with \(who) while copying (was it unplugged?). Plug it back in and copy again; only what's still missing will be copied."
-                }
+                let reason = Offload.explain(error, cardRoot: cardRoot, driveName: dest.name)
                 print("\(cardRoot.lastPathComponent) [red]\n  \(reason)\n  Log: \(log.url.path)")
                 exit(1)
             }
-            let indexer = Indexer(store: store)
-            for o in outcomes {
-                let rel = String(o.finalURL.path.dropFirst(dest.root!.path.count + 1))
-                try indexer.record(dest, path: rel, hash: o.hash)
-                if o.renamed { print("  \(o.source.lastPathComponent) → \(o.finalURL.lastPathComponent) (a different file already had that name)") }
+            for o in outcomes where o.renamed {
+                print("  \(o.source.lastPathComponent) → \(o.finalURL.lastPathComponent) (a different file already had that name)")
             }
             print("  Log: \(log.url.path)")
         }

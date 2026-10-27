@@ -63,6 +63,27 @@ func memoryStore() throws -> Store { try Store(path: ":memory:") }
     }
 }
 
+@Suite struct WalkTests {
+    /// Regression: skipDescendants() on a junk *file* used to skip the enclosing folder, silently dropping files.
+    @Test func junkFilesDoNotHideTheirFolder() {
+        let t = TempTree()
+        var expected: [String] = []
+        for d in ["DCIM/100CANON", "DCIM/101CANON", "Other place/100CANON"] {
+            t.write("\(d)/.DS_Store")
+            t.write("\(d)/._MVI_0001.MP4")
+            for i in 1...20 {
+                let p = "\(d)/MVI_\(String(format: "%04d", i)).MP4"
+                t.write(p)
+                expected.append(p)
+            }
+        }
+        t.write("._DCIM")
+        t.write(".DS_Store")
+        t.write(".Spotlight-V100/Store-V2/x")
+        #expect(walkFiles(t.root).map(\.path).sorted() == expected.sorted())
+    }
+}
+
 @Suite struct MatcherTests {
     @Test func sameNameDifferentContentIsMissing_renamedCopyIsBacked() throws {
         let card = TempTree(), drive = TempTree(), store = try memoryStore()

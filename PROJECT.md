@@ -2,7 +2,7 @@
 
 ## Last Verified
 
-2026-10-27, end of the Phase 2 session. `swift test` passed (23 tests). `swift build` is clean. The fake-image acceptance runs below passed. Git is on `main` with commits for Phases 0, 1 and 2.
+2026-10-27, end of the Phase 3 session. `swift test` passed (26 tests). `swift build` and `scripts/build-app.sh` are clean. The Phase 3 acceptance passed on the real menu bar with fake card images. Git is on `main` and pushed to the private repo https://github.com/bythebug/backed.
 
 ## Project Goal
 
@@ -28,14 +28,15 @@ From PLAN.md §6. All are still unanswered:
 - **Q1** Remount cards read-only via DiskArbitration by default? (Recommended: yes. macOS was seen writing `.fseventsd` to the writable fake card.)
 - **Q2** Re-hash matched destination files before showing green, or trust the stat-keyed cache?
 - **Q3** Developer ID team for signing and notarization.
-- **Q4** Git remote (none set up; nothing pushed).
+- ~~Q4~~ Answered: private GitHub repo `bythebug/backed`, remote `origin`. The user asked for it to be created and pushed.
 
 ## Current Status
 
 - Phase 0 (plan): COMPLETE (user review pending)
 - Phase 1 (core engine + `backed-cli status`): COMPLETE
 - Phase 2 (copy/verify + `backed-cli copy`): COMPLETE, with the gaps listed under Known Issues
-- Phases 3–8: NOT STARTED
+- Phase 3 (menu bar app): COMPLETE (see the gaps under Known Issues)
+- Phases 4–8: NOT STARTED
 
 ## Completed
 
@@ -44,6 +45,17 @@ From PLAN.md §6. All are still unanswered:
   - Verified with fake Canon card + APFS "T7 Shield": "148 of 148 files aren't on T7 Shield yet. Don't format." After 19 files were copied by hand: "129 of 148…". After all were copied by hand into another folder structure: green. With the drive detached: grey "From memory — T7 Shield as of Tue 27 Oct."
 - **Phase 2:** `Copier` (partial file → F_FULLFSYNC → uncached verify → re-read → re-copy once → `RENAME_EXCL` placement with `(2)` numbering, stale-partial sweep, preflight for free space and FAT32's 4 GiB limit, sleep assertion), `CopyLog` (JSON lines), `Indexer.record`, `backed-cli copy`.
   - Verified with fake images: copied 148 files to an exFAT drive (no fsync fallback was needed). Card B with reused names got `(2)` names. A copy too big for the drive was refused before anything was written. A drive force-detached mid-copy gave a plain-language error, and the next run cleaned up the partial and finished green. Copying into a new folder on a drive that already held the files copied nothing.
+- **Phase 3:** `Sources/BackedApp`, built into `build/backed.app` by `scripts/build-app.sh` (ad-hoc signed; `DEVELOPER_ID` env for hardened runtime).
+  - Status item "b." with a worst-verdict dot (none when no card is in).
+  - Popover that opens by itself when a card mounts, with a fallback anchor when the icon is hidden behind the notch or a crowded menu bar.
+  - Per-card rows: orb placeholder, verdict lines, `Choose folder…` copy, "Plug in X to copy", `Show in Finder`.
+  - "Also plugged in" list with a role menu (Working drive / Backup / Not used / Treat as a card). "Not a card" in the card row's context menu.
+  - Open backed window with the launch-at-login toggle (`SMAppService`) and a logs link. Notification when a copy ends while the popover is closed.
+  - Every mount or unmount re-checks all cards, so plugging in a drive updates the verdict.
+  - `Engine` actor owns the Store and serialises all disk work. `AppModel` is `@MainActor @Observable`. `BACKED_DB` env var overrides the database.
+  - Shared CLI/app steps moved into `BackedCore/Offload.swift`.
+  - Verified: inserting fake Card C opened the popover by itself → "Reading 28 of 80 files on the card…" (grey) → "50 of 80 files aren't on T7 Shield yet. Don't format." (red dot). Card A showed "129 of 148…", which exposed the walker bug below.
+- **Bug fixed in Phase 3 (safety-relevant):** `walkFiles` called `skipDescendants()` on junk *files* (`.DS_Store`, `._*`), which skipped the whole enclosing folder. On a card this could have dropped clips from the scan and produced a false green. Fixed, with regression test `junkFilesDoNotHideTheirFolder` (it failed before the fix).
 - Docs: `docs/SAFETY.md`, `README.md`.
 
 ## In Progress
@@ -52,7 +64,19 @@ Nothing.
 
 ## Next Task
 
-**Phase 3: menu bar app.** Add an executable target `backed` (SwiftPM, PLAN D1) plus `scripts/build-app.sh` to assemble a `.app` (Info.plist with `LSUIElement`). It needs:
+**Phase 4: shoots and folders.**
+- `Planner` with the template tokens `{year} {client} {date:fmt} {shoot} {camera} {kind}` and the D6 layout (`Footage/{camera}`, `Photo/{camera}` only if there are stills, `Audio` only if there's audio, `Project`).
+- Template inference by scanning an existing root.
+- Shoot persistence: new `shoot` and `camera` tables in Store.
+- Logical shoot day with a 05:00 cutoff, plus clock checks.
+- Camera identity: needs metadata. Start with a generic AVFoundation/ImageIO metadata provider and a mockable protocol so tests run without real clips. Brand profiles stay in Phase 6.
+- Body labels (`FX3`, `FX3 B`), and asking the user when there's no serial.
+- The New shoot sheet with a live tree preview; `Add to "<shoot>"` as the primary action.
+- Per-shoot log location.
+
+Acceptance: the three-card integration test (A → new shoot → green; B second body → `FX3 B`; C after midnight → same shoot) passes, and the tree preview matches what's created on disk.
+
+Previous Phase 3 next-task notes, kept for reference: Add an executable target `backed` (SwiftPM, PLAN D1) plus `scripts/build-app.sh` to assemble a `.app` (Info.plist with `LSUIElement`). It needs:
 - an `NSStatusItem` "b." with a worst-verdict dot;
 - an `NSPopover` that opens programmatically when a card appears (DiskArbitration `DARegisterDiskAppearedCallback`/`Disappeared` on a dispatch queue, with `NSWorkspace.didMountNotification` as fallback);
 - one verdict row per card (reading progress, then red/grey/green), the "Also plugged in" list, Open/Quit, a notification when done, and `SMAppService` launch at login.
@@ -62,7 +86,7 @@ Turn the indexer and copier into actors with cancellation, and add a per-destina
 ## Remaining Work
 
 ### Required
-- Phase 3: menu bar app (above).
+- Phase 3 follow-ups: Q1 read-only remount via DiskArbitration; per-drive copy queues instead of one global actor; caching card hashes across re-checks.
 - Phase 4: Planner (template tokens, inferring the template from an existing root), shoot day with a 05:00 cutoff, joining cards to shoots, `FX3 B` body labels, asking when there's no serial, clock checks, New shoot sheet, per-shoot log location, configurable collision naming (card/roll prefix).
 - Phase 5: several working drives, backups list, required vs optional drives, auto re-check on reconnect, per-drive copy progress.
 - Phase 6: `CameraProfile` per brand plus generic fallback, `docs/cameras.md`, metadata (AVFoundation/ImageIO/Sony XML).
@@ -88,6 +112,8 @@ SwiftPM package (`Package.swift`, macOS 14, tools 6.0):
   - `Matcher.swift`: `Matcher.check` → `[DriveCheck]` → `Verdict.from` (red/grey/green, spec copy text).
   - `Volume.swift`: snapshot of mounted volumes (FileManager), `isCard`, `containing`, `destination(for:)`.
   - `Copier.swift`: `Copier`, `CopyRequest/Outcome/Event/Error`, `CopyLog`.
+  - `Offload.swift`: shared app/CLI steps (`drives`, `destination(containing:)`, `newLog`, `copyMissing`, `explain`).
+- `BackedApp` (AppKit + SwiftUI): `main.swift` (AppDelegate: status item, popover, fallback anchor, mount notifications, main window), `AppModel.swift` (cards, others, check/copy tasks, progress throttle, notifications), `Engine.swift` (actor over Store), `Views.swift` (Orb, CardRow, PopoverView, MainView).
 - `backed-cli`: hand-rolled argument parsing; database at `~/Library/Application Support/backed/backed.sqlite` (`--db` overrides).
 
 Data flow: scan card → index connected drives (re-stat) → hash only same-size candidates (uncached) → hash card files as needed → per-drive missing list → verdict. Copy: missing list → requests → copier → `Indexer.record` → re-check → verdict.
@@ -111,7 +137,8 @@ No external packages. `CXXHash` is vendored. System frameworks used: Foundation,
 
 All verified 2026-10-27:
 - Build: `swift build`
-- Test: `swift test` (23 tests)
+- Test: `swift test` (26 tests)
+- App: `scripts/build-app.sh` → `build/backed.app`; run with `BACKED_DB=<path> build/backed.app/Contents/MacOS/backed` to use a test database
 - CLI: `.build/debug/backed-cli volumes | role <path> working|backup|card|ignored|auto | status [--card P] [--drive P] | copy --to <folder> [--card P] [--keep-structure]` plus `--db <path>`
 - Fake media: `scripts/make-fake-card.sh sony|canon|gopro|drive "<Name>" [clips] [kb]` (creates and mounts the image in `fake-cards/`); detach with `hdiutil detach "/Volumes/<Name>"`
 - Lint/format: none configured. Deploy/sign: not built yet.
@@ -119,9 +146,14 @@ All verified 2026-10-27:
 ## Verification
 
 - 2026-10-27 `swift test`: 23/23 passed. Covers the xxh3 reference vector, chunked vs one-shot hashing, scanning and classification, matching (same name with different content, renamed copies), memory never green, rehash on change, partials ignored, spec copy text, copy and date preservation, clashes, case-insensitive clashes, identical files at the target name, bit flip, re-copy, cancel, stale partials, swept partials, source changed, preflight, log, copy → green.
+- 2026-10-27 Phase 3: launched the built app, attached fake card images. The popover auto-opened with reading progress, then the red verdict. The status item showed the dot (checked via Accessibility title "b. ●" and screenshots). Popover auto-open was seen both with the icon visible and with it hidden; the `hidesOnDeactivate` fix for the hidden case was rebuilt but only re-verified with the icon visible.
 - 2026-10-27 manual runs on fake images: the Phase 1 acceptance (red → hand-copied → green → unplugged → grey from memory) and the Phase 2 scenarios listed under Completed.
 
 ## Known Issues
+
+- Phase 3 UI paths not exercised by clicking: `Choose folder…` → copy → green (the shared `Offload.copyMissing` is unit-tested and its preflight was seen refusing on a full fake drive), role menus, launch-at-login toggle, notifications (they may need a properly signed app). None verified in the UI.
+- The orb is a breathing gradient placeholder. The particle orb is Phase 8. In one screenshot taken mid-resize the orb looked vertically offset; it was correct once settled.
+- Re-checks re-hash the card's same-size candidates every time; no card hash cache yet.
 
 - macOS writes `.fseventsd` to writable card mounts, and an AppleDouble `._DCIM` was also found on the fake card (possibly from the test script). Not caused by backed., but it breaks the spirit of rule 1 until the D7 read-only remount is built (Q1).
 - It hasn't been measured whether the `F_NOCACHE` read-back actually reaches the device (TODO(verify) in `Copier.writePartial`).
@@ -147,16 +179,18 @@ None. Q1–Q4 need answers before the parts of Phases 3 and 8 they affect.
 
 ## Session Progress
 
+- 2026-10-27, session 2: created and pushed the private GitHub repo; built Phase 3, the menu bar app.
+  - Found and fixed: the walker bug that skipped folders containing junk files (safety-relevant); the popover not opening when the icon is hidden by the notch or a menu bar manager; the fallback anchor panel hiding when the app is inactive.
 - 2026-10-27, session 1: initialized project memory; wrote PLAN.md; on "build", ran `git init`, vendored xxhash v0.8.3, and built and committed Phases 1 and 2.
   - Bugs found and fixed while doing it: the verify hook ran per read instead of per write; the containing-volume lookup failed for folders that didn't exist yet (this caused duplicate copies); partials were left behind after a drive pull; the disconnect message was raw.
 
 ## Handoff Notes
 
 1. **Building:** backed., a macOS menu bar app that proves camera cards are backed up, using content hashing and verified copies. Spec: `backed-build-prompt.md`.
-2. **Where we are:** Phases 0–2 are done and committed. The core engine and CLI work against fake disk images. There's no UI yet.
-3. **Most recent:** the Phase 2 copier with atomic, verified, non-overwriting copies, plus SAFETY.md and README.
-4. **Remaining:** Phases 3–8, and answers to Q1–Q4.
-5. **Next:** Phase 3, the menu bar app (see Next Task).
+2. **Where we are:** Phases 0–3 are done, committed and pushed (`origin` = github.com/bythebug/backed, private). The CLI and menu bar app work against fake disk images.
+3. **Most recent:** the Phase 3 menu bar app and the walker false-green bug fix.
+4. **Remaining:** Phases 4–8, and answers to Q1–Q3.
+5. **Next:** Phase 4, shoots and folders (see Next Task).
 6. **Be careful:**
    - Safety rules beat features.
    - Never let a disconnected drive produce green.

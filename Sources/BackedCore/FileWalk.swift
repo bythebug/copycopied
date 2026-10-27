@@ -31,7 +31,8 @@ public func walkFiles(_ root: URL) -> [(path: String, stat: FileStat)] {
     var out: [(String, FileStat)] = []
     while let rel = e.nextObject() as? String {
         if isJunk((rel as NSString).lastPathComponent) {
-            e.skipDescendants()
+            // Only for junk folders: on a file, skipDescendants() skips the enclosing folder and drops real files.
+            if e.fileAttributes?[.type] as? FileAttributeType == .typeDirectory { e.skipDescendants() }
             continue
         }
         if let st = statFile(atPath: root.appendingPathComponent(rel).path) { out.append((rel, st)) }
