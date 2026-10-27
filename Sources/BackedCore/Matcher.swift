@@ -12,6 +12,8 @@ public enum Verdict: Sendable, Equatable {
     case notBacked(missing: Int, total: Int, drive: String)
     case partiallyBacked(missing: Int, total: Int, drive: String)
     case fromMemory(missing: Int, drive: String, asOf: Date?)
+    case copying(n: Int, total: Int)
+    case verifying(n: Int, total: Int)
     case backed(total: Int, drives: [String])
     case problem(String)
 
@@ -20,7 +22,7 @@ public enum Verdict: Sendable, Equatable {
     public var orb: Orb {
         switch self {
         case .notBacked, .partiallyBacked, .problem: .red
-        case .reading, .fromMemory: .grey
+        case .reading, .fromMemory, .copying, .verifying: .grey
         case .backed: .green
         }
     }
@@ -50,6 +52,10 @@ public enum Verdict: Sendable, Equatable {
             return [m == 0 ? "Nothing to copy" : "\(m) \(m == 1 ? "file" : "files") to copy",
                     "From memory — \(drive)\(when).",
                     "Plug it in to confirm before formatting."]
+        case let .copying(n, total):
+            return ["Copying \(n) of \(total)…"]
+        case let .verifying(n, total):
+            return ["Checking \(n) of \(total)…"]
         case let .backed(total, _):
             return ["\(total) / \(total) files copied. Each one read back and checked."]
         case let .problem(reason):

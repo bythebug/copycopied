@@ -51,6 +51,7 @@ Data flow for "Is it backed?": scan card (stat only) → for each relevant file,
 ## 4. Risks
 
 - **exFAT/FAT behaviour**, all TODO(verify) on real media: `F_FULLFSYNC` may return `ENOTSUP` (we'll fall back to `fsync` and log it). `inode` on msdosfs/exfat may not be stable across remounts, which only costs re-hashing. mtime is accurate to 2 s on FAT32. FAT32 can't hold files over 4 GB (check before copying, and stop).
+- **macOS writes to writable card mounts by itself** (observed 2026-10-27): `.fseventsd` showed up on a fake exFAT card, and an AppleDouble `._DCIM` was also present (possibly from the test script creating that folder). Card reads don't change atime (exFAT mounts `noatime`). So D7 (read-only remount) is the only way to fully honour safety rule 1.
 - **Volume identity:** a card reformatted in camera probably gets a new volume serial/UUID (TODO(verify)). Matching is by content, so this only affects session bookkeeping.
 - **Stale cache = false green.** Mitigated by the stat key plus the connected-drive requirement (D10, Q2).
 - **Metadata extraction per brand** is the least certain area. Everything goes in cameras.md as verified or assumed, and the generic fallback (EXIF/AVFoundation/file dates) always works.

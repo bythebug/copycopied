@@ -45,6 +45,13 @@ public enum Volumes {
                              capacity: Int64(v.volumeTotalCapacity ?? 0), free: Int64(v.volumeAvailableCapacity ?? 0))
     }
 
+    /// The non-boot volume holding `url` (or, if it doesn't exist yet, its nearest existing parent).
+    public static func containing(_ url: URL) -> MountedVolume? {
+        var u = url
+        while !FileManager.default.fileExists(atPath: u.path), u.path != "/" { u = u.deletingLastPathComponent() }
+        return (try? u.resourceValues(forKeys: [.volumeURLKey]).volume).flatMap(info)
+    }
+
     /// A destination for any path: the volume itself when `url` is a mount point, otherwise the folder.
     public static func destination(for url: URL) -> Destination {
         let url = url.standardizedFileURL.resolvingSymlinksInPath()

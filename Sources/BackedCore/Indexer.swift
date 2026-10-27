@@ -45,6 +45,17 @@ public struct Indexer {
         }
     }
 
+    /// Records a file backed. just wrote and verified uncached, so it needs no re-hash.
+    public func record(_ dest: Destination, path: String, hash: String) throws {
+        guard let root = dest.root, let st = statFile(atPath: root.appendingPathComponent(path).path) else { return }
+        try store.touchVolume(id: dest.id, name: dest.name)
+        try store.query("""
+            INSERT OR REPLACE INTO indexed_file(volume_id, path, size, mtime, inode, hash, hash_verified_at)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
+            """, [.text(dest.id), .text(path), .int(st.size), .real(st.mtime), .int(Int64(bitPattern: st.inode)),
+                  .text(hash), .real(Date().timeIntervalSince1970)])
+    }
+
     /// Hashes (uncached) every unhashed row whose size is in `sizes`. Only size collisions are worth reading.
     public func hashCandidates(_ dest: Destination, sizes: Set<Int64>) throws {
         guard let root = dest.root else { return }
