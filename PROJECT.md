@@ -25,7 +25,7 @@ All from `backed-build-prompt.md`:
 ### Open Questions
 
 From PLAN.md §6. All are still unanswered:
-- **Q1** Remount cards read-only via DiskArbitration by default? (Recommended: yes. macOS was seen writing `.fseventsd` to the writable fake card.)
+- ~~Q1~~ Answered 2026-10-27: **no read-only remount.** Cards stay writable so users can delete from Finder. Recorded as PLAN.md D7.
 - **Q2** Re-hash matched destination files before showing green, or trust the stat-keyed cache?
 - **Q3** Developer ID team for signing and notarization.
 - ~~Q4~~ Answered: private GitHub repo `bythebug/backed`, remote `origin`. The user asked for it to be created and pushed.
@@ -80,7 +80,7 @@ Acceptance: the three-card integration test (A → new shoot → green; B second
 ## Remaining Work
 
 ### Required
-- Phase 3 follow-ups: Q1 read-only remount via DiskArbitration; per-drive copy queues instead of one global actor; caching card hashes across re-checks.
+- Phase 3 follow-ups: per-drive copy queues instead of one global actor; caching card hashes across re-checks.
 - Phase 4: Planner (template tokens, inferring the template from an existing root), shoot day with a 05:00 cutoff, joining cards to shoots, `FX3 B` body labels, asking when there's no serial, clock checks, New shoot sheet, per-shoot log location, configurable collision naming (card/roll prefix).
 - Phase 5: several working drives, backups list, required vs optional drives, auto re-check on reconnect, per-drive copy progress.
 - Phase 6: `CameraProfile` per brand plus generic fallback, `docs/cameras.md`, metadata (AVFoundation/ImageIO/Sony XML).
@@ -183,7 +183,7 @@ None. Q1–Q4 need answers before the parts of Phases 3 and 8 they affect.
 1. **Building:** backed., a macOS menu bar app that proves camera cards are backed up, using content hashing and verified copies. Spec: `backed-build-prompt.md`.
 2. **Where we are:** Phases 0–3 are done, committed and pushed (`origin` = github.com/bythebug/backed, private). The CLI and menu bar app work against fake disk images.
 3. **Most recent:** the Phase 3 menu bar app and the walker false-green bug fix.
-4. **Remaining:** Phases 4–8, and answers to Q1–Q3.
+4. **Remaining:** Phases 4–8, and answers to Q2–Q3.
 5. **Next:** Phase 4, shoots and folders (see Next Task).
 6. **Be careful:**
    - Safety rules beat features.
