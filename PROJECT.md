@@ -149,7 +149,7 @@ All verified 2026-10-27:
 - The orb is a breathing gradient placeholder. The particle orb is Phase 8. In one screenshot taken mid-resize the orb looked vertically offset; it was correct once settled.
 - Re-checks re-hash the card's same-size candidates every time; no card hash cache yet.
 
-- macOS writes `.fseventsd` to writable card mounts, and an AppleDouble `._DCIM` was also found on the fake card (possibly from the test script). Not caused by backed., but it breaks the spirit of rule 1 until the D7 read-only remount is built (Q1).
+- macOS writes `.fseventsd` to writable card mounts, and an AppleDouble `._DCIM` was also found on the fake card (possibly from the test script). Not caused by backed. By decision D7 cards stay writable, so this is accepted; backed. ignores those files.
 - It hasn't been measured whether the `F_NOCACHE` read-back actually reaches the device (TODO(verify) in `Copier.writePartial`).
 - `RENAME_EXCL` support on exFAT/FAT is unknown. The fallback is check-then-rename, which is only safe with one copier per drive. The CLI doesn't enforce that; the Phase 3 per-drive queue must.
 - Volumes without a UUID get the id `noid:<name>:<capacity>` (TODO(verify) for FAT cards).
@@ -160,7 +160,7 @@ All verified 2026-10-27:
 
 ## Blockers
 
-None. Q1–Q4 need answers before the parts of Phases 3 and 8 they affect.
+None. Q2 (re-hash before green) and Q3 (signing team) are still open; Q3 blocks notarization in Phase 8.
 
 ## Files and Components
 
