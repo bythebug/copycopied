@@ -115,6 +115,8 @@ Data flow: scan card → index connected drives (re-stat) → hash only same-siz
 
 ## Important Decisions
 
+- **Distribution via Homebrew** (2026-10-27, user). Follows the user's existing apps (FastWifi, LightOS, XTerm): the repo `bythebug/copycopied` was made **public**; a zip goes on a GitHub release; cask `copycopied` lives in the public tap `bythebug/homebrew-tap`. The app isn't notarized (only an "Apple Development" certificate exists, no Developer ID), so the cask caveat tells users to run `xattr -dr com.apple.quarantine`. Release with `scripts/release.sh <version>`.
+
 - **Renamed to CopyCopied** (2026-10-27, user). "backed." is another company's product name. The rename covers code modules, CLI, app bundle, bundle ID, data folder, partial-file suffix, menu glyph ("cc."), docs and the GitHub repo (`bythebug/copycopied`, private). Done; build and tests pass under the new names.
 
 See `docs/PLAN.md` §2 for the full list with reasons. The ones that affect code now:
@@ -135,7 +137,8 @@ No external packages. `CXXHash` is vendored. System frameworks used: Foundation,
 All verified 2026-10-27:
 - Build: `swift build`
 - Test: `swift test` (28 tests)
-- App: `scripts/build-app.sh` → `build/CopyCopied.app`; run with `COPYCOPIED_DB=<path> build/CopyCopied.app/Contents/MacOS/backed` to use a test database
+- Release: `scripts/release.sh <version>` (tests, universal build, zip, tag, GitHub release, tap cask update). Install: `brew install --cask bythebug/tap/copycopied`.
+- App: `VERSION=x.y.z scripts/build-app.sh` → universal `build/CopyCopied.app`; run with `COPYCOPIED_DB=<path> build/CopyCopied.app/Contents/MacOS/backed` to use a test database
 - CLI: `.build/debug/copycopied-cli volumes | role <path> working|backup|card|ignored|auto | status [--card P] [--drive P] | copy --to <folder> [--card P] [--keep-structure]` plus `--db <path>`
 - Fake media: `scripts/make-fake-card.sh sony|canon|gopro|drive "<Name>" [clips] [kb]` (creates and mounts the image in `fake-cards/`); detach with `hdiutil detach "/Volumes/<Name>"`
 - Lint/format: none configured. Deploy/sign: not built yet.

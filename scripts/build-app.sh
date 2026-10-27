@@ -2,18 +2,22 @@
 # Builds build/CopyCopied.app from the CopyCopiedApp SwiftPM target (PLAN.md D1).
 #   scripts/build-app.sh            ad-hoc signed, for running locally
 #   DEVELOPER_ID="Developer ID Application: …" scripts/build-app.sh   hardened runtime, ready to notarize (Phase 8)
+#   VERSION=0.3.0 scripts/build-app.sh   sets the app version (default: 0.0.0-dev)
+# Universal binary (Apple Silicon + Intel).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+version=${VERSION:-0.0.0-dev}
 
-swift build -c release --product CopyCopiedApp
+arch=(--arch arm64 --arch x86_64)
+swift build -c release $arch --product CopyCopiedApp
 app=build/CopyCopied.app
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp assets/AppIcon.icns "$app/Contents/Resources/"   # regenerate with: swift scripts/make-icon.swift
-cp "$(swift build -c release --show-bin-path)/CopyCopiedApp" "$app/Contents/MacOS/copycopied"
+cp "$(swift build -c release $arch --show-bin-path)/CopyCopiedApp" "$app/Contents/MacOS/copycopied"
 
 # TODO(verify): bundle identifier is a placeholder until the signing team is known (PLAN.md Q3).
-cat > "$app/Contents/Info.plist" <<'EOF'
+cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -24,8 +28,8 @@ cat > "$app/Contents/Info.plist" <<'EOF'
   <key>CFBundleExecutable</key><string>copycopied</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.3.0</string>
-  <key>CFBundleVersion</key><string>3</string>
+  <key>CFBundleShortVersionString</key><string>$version</string>
+  <key>CFBundleVersion</key><string>$version</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSRemovableVolumesUsageDescription</key>

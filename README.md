@@ -6,6 +6,15 @@ Tells you, with certainty, whether every file on a camera card is safely copied 
 
 Status: Phases 1–3 are done. The core engine and copy/verify work through `copycopied-cli`, and a menu bar app opens by itself when a card is inserted.
 
+## Install
+
+```sh
+brew install --cask bythebug/tap/copycopied
+xattr -dr com.apple.quarantine /Applications/CopyCopied.app   # not notarized yet; allows the first launch
+```
+
+Requires macOS 14 or later (Apple Silicon or Intel). This is an early build: it checks cards and copies what's missing into a folder you choose. Shoots, folder templates and camera detection are still to come.
+
 ## Run locally with fake cards
 
 ```sh
