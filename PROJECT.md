@@ -2,7 +2,7 @@
 
 ## Last Verified
 
-2026-10-27, after the rename to CopyCopied. `swift test` passed (28 tests). `swift build` and `scripts/build-app.sh` are clean. Re-ran Phase 3 acceptance on the renamed app: inserting fake Card C auto-opened the popover (via the hidden-icon fallback anchor, which stayed open), showing "50 of 80 files aren't on T7 Shield yet. Don't format." and "Open CopyCopied". Git is on `main`, remote https://github.com/bythebug/copycopied (private).
+2026-10-27, end of session 5. `git status` is clean on `main`, in sync with `origin` (https://github.com/bythebug/copycopied, **public**), tag `v0.3.0`. `swift test` passed (28 tests). Release 0.3.0 is live via `brew install --cask bythebug/tap/copycopied` and was **installed on the user's Mac** (`/Applications/CopyCopied.app`, quarantine cleared, running) so they can try it. No fake disk images are mounted.
 
 ## Project Goal
 
@@ -24,11 +24,11 @@ All from `backed-build-prompt.md`:
 
 ### Open Questions
 
-From PLAN.md §6. All are still unanswered:
+From PLAN.md §6:
 - ~~Q1~~ Answered 2026-10-27: **no read-only remount.** Cards stay writable so users can delete from Finder. Recorded as PLAN.md D7.
 - **Q2** Re-hash matched destination files before showing green, or trust the stat-keyed cache?
 - **Q3** Developer ID team for signing and notarization.
-- ~~Q4~~ Answered: private GitHub repo `bythebug/copycopied`, remote `origin`. The user asked for it to be created and pushed.
+- ~~Q4~~ Answered: GitHub repo `bythebug/copycopied`, remote `origin`. It was created private and made public for Homebrew distribution.
 
 ## Current Status
 
@@ -36,6 +36,7 @@ From PLAN.md §6. All are still unanswered:
 - Phase 1 (core engine + `copycopied-cli status`): COMPLETE
 - Phase 2 (copy/verify + `copycopied-cli copy`): COMPLETE, with the gaps listed under Known Issues
 - Phase 3 (menu bar app): COMPLETE (see the gaps under Known Issues)
+- Distribution: 0.3.0 SHIPPED via Homebrew (not notarized)
 - Phases 4–8: NOT STARTED
 
 ## Completed
@@ -50,7 +51,7 @@ From PLAN.md §6. All are still unanswered:
   - Popover that opens by itself when a card mounts, with a fallback anchor when the icon is hidden behind the notch or a crowded menu bar.
   - Per-card rows: orb placeholder, verdict lines, `Choose folder…` copy, "Plug in X to copy", `Show in Finder`.
   - "Also plugged in" list with a role menu (Working drive / Backup / Not used / Treat as a card). "Not a card" in the card row's context menu.
-  - Open backed window with the launch-at-login toggle (`SMAppService`) and a logs link. Notification when a copy ends while the popover is closed.
+  - Open CopyCopied window with the launch-at-login toggle (`SMAppService`) and a logs link. Notification when a copy ends while the popover is closed.
   - Every mount or unmount re-checks all cards, so plugging in a drive updates the verdict.
   - `Engine` actor owns the Store and serialises all disk work. `AppModel` is `@MainActor @Observable`. `COPYCOPIED_DB` env var overrides the database.
   - Shared CLI/app steps moved into `CopyCopiedCore/Offload.swift`.
@@ -64,6 +65,8 @@ From PLAN.md §6. All are still unanswered:
 Nothing.
 
 ## Next Task
+
+**First: ask the user how their trial of 0.3.0 went** (installed 2026-10-27) and fix anything they report. Then:
 
 **Phase 4: shoots and folders.**
 - `Planner` with the template tokens `{year} {client} {date:fmt} {shoot} {camera} {kind}` and the D6 layout (`Footage/{camera}`, `Photo/{camera}` only if there are stills, `Audio` only if there's audio, `Project`).
@@ -117,7 +120,7 @@ Data flow: scan card → index connected drives (re-stat) → hash only same-siz
 
 - **Distribution via Homebrew** (2026-10-27, user). Follows the user's existing apps (FastWifi, LightOS, XTerm): the repo `bythebug/copycopied` was made **public**; a zip goes on a GitHub release; cask `copycopied` lives in the public tap `bythebug/homebrew-tap`. The app isn't notarized (only an "Apple Development" certificate exists, no Developer ID), so the cask caveat tells users to run `xattr -dr com.apple.quarantine`. Release with `scripts/release.sh <version>`.
 
-- **Renamed to CopyCopied** (2026-10-27, user). "backed." is another company's product name. The rename covers code modules, CLI, app bundle, bundle ID, data folder, partial-file suffix, menu glyph ("cc."), docs and the GitHub repo (`bythebug/copycopied`, private). Done; build and tests pass under the new names.
+- **Renamed to CopyCopied** (2026-10-27, user). "backed." is another company's product name. The rename covers code modules, CLI, app bundle, bundle ID, data folder, partial-file suffix, menu glyph ("cc."), docs and the GitHub repo (`bythebug/copycopied`). Done; build and tests pass under the new names.
 
 See `docs/PLAN.md` §2 for the full list with reasons. The ones that affect code now:
 - D1 SwiftPM only (no xcodegen or .xcodeproj). Active.
@@ -138,18 +141,19 @@ All verified 2026-10-27:
 - Build: `swift build`
 - Test: `swift test` (28 tests)
 - Release: `scripts/release.sh <version>` (tests, universal build, zip, tag, GitHub release, tap cask update). Install: `brew install --cask bythebug/tap/copycopied`.
-- App: `VERSION=x.y.z scripts/build-app.sh` → universal `build/CopyCopied.app`; run with `COPYCOPIED_DB=<path> build/CopyCopied.app/Contents/MacOS/backed` to use a test database
+- App: `VERSION=x.y.z scripts/build-app.sh` → universal `build/CopyCopied.app`; run with `COPYCOPIED_DB=<path> build/CopyCopied.app/Contents/MacOS/copycopied` to use a test database
 - CLI: `.build/debug/copycopied-cli volumes | role <path> working|backup|card|ignored|auto | status [--card P] [--drive P] | copy --to <folder> [--card P] [--keep-structure]` plus `--db <path>`
 - Fake media: `scripts/make-fake-card.sh sony|canon|gopro|drive "<Name>" [clips] [kb]` (creates and mounts the image in `fake-cards/`); detach with `hdiutil detach "/Volumes/<Name>"`
-- Lint/format: none configured. Deploy/sign: not built yet.
+- Icon: `swift scripts/make-icon.swift` → `assets/`
+- Lint/format: none configured. Notarization: not possible yet (no Developer ID).
 
 ## Verification
 
 - 2026-10-27 **Release 0.3.0 shipped**: https://github.com/bythebug/copycopied/releases/tag/v0.3.0 with cask `bythebug/tap/copycopied` (tap commit "copycopied 0.3.0").
   - The downloaded zip's sha256 matches the cask. It holds a universal (x86_64 + arm64) app, version 0.3.0, with icon, and passes `codesign --verify`.
-  - `brew style` reported no offenses; `brew audit --cask --online` reported no problems; `brew install --cask --dry-run` would install it. The cask wasn't actually installed on the dev Mac.
+  - `brew style` reported no offenses; `brew audit --cask --online` reported no problems; `brew install --cask --dry-run` would install it. Later the user asked for a real install: `brew install --cask bythebug/tap/copycopied` succeeded, the app launched from `/Applications`.
 
-- 2026-10-27 `swift test`: 23/23 passed. Covers the xxh3 reference vector, chunked vs one-shot hashing, scanning and classification, matching (same name with different content, renamed copies), memory never green, rehash on change, partials ignored, spec copy text, copy and date preservation, clashes, case-insensitive clashes, identical files at the target name, bit flip, re-copy, cancel, stale partials, swept partials, source changed, preflight, log, copy → green.
+- 2026-10-27 `swift test`: 28/28 passed. Covers the xxh3 reference vector, chunked vs one-shot hashing, scanning and classification, matching (same name with different content, renamed copies), memory never green, rehash on change, partials ignored, spec copy text, copy and date preservation, clashes, case-insensitive clashes, identical files at the target name, bit flip, re-copy, cancel, stale partials, swept partials, source changed, preflight, log, copy → green.
 - 2026-10-27 Phase 3: launched the built app, attached fake card images. The popover auto-opened with reading progress, then the red verdict. The status item showed the dot (checked via Accessibility title "b. ●" and screenshots). Popover auto-open was seen both with the icon visible and with it hidden; the `hidesOnDeactivate` fix for the hidden case was rebuilt but only re-verified with the icon visible.
 - 2026-10-27 manual runs on fake images: the Phase 1 acceptance (red → hand-copied → green → unplugged → grey from memory) and the Phase 2 scenarios listed under Completed.
 
@@ -184,12 +188,16 @@ None. Q2 (re-hash before green) and Q3 (signing team) are still open; Q3 blocks 
 - `backed-build-prompt.md`: authoritative spec.
 - `CLAUDE.md`: permanent project rules. `PROJECT.md`: this file.
 - `docs/PLAN.md`: architecture, decisions, risks, questions. `docs/SAFETY.md`: each rule's enforcement and tests.
-- `Sources/CopyCopiedCore/*`: engine (complete for Phases 1–2). `Sources/copycopied-cli/main.swift`: CLI.
+- `Sources/CopyCopiedCore/*`: engine (Phases 1–3). `Sources/CopyCopiedApp/*`: menu bar app. `Sources/copycopied-cli/main.swift`: CLI.
+- `scripts/build-app.sh` (universal `.app`), `scripts/release.sh` (GitHub release + tap cask), `scripts/make-icon.swift` (icon → `assets/`).
+- `assets/`: `AppIcon.icns`, `icon.png` (1024), `favicon.png` (64), all generated.
+- Tap cask: `Casks/copycopied.rb` in `bythebug/homebrew-tap` (local clone at `$(brew --repository bythebug/tap)`).
 - `Sources/CXXHash/`: vendored xxhash. `Tests/CopyCopiedCoreTests/`: `CoreTests.swift`, `CopierTests.swift`.
 - `scripts/make-fake-card.sh`: fake cards and drives. `fake-cards/`: git-ignored images and test database.
 
 ## Session Progress
 
+- 2026-10-27, session 5: installed 0.3.0 on the user's Mac via Homebrew for them to try; reconciled this file.
 - 2026-10-27, session 4: made the repo public; universal versioned build; `scripts/release.sh`; shipped 0.3.0 via GitHub release and the `bythebug/tap` cask.
 - 2026-10-27, session 3: decided cards stay writable (no read-only remount); added the never-write-to-card guard (fixed a false green when a card was chosen as its own destination); renamed the product to CopyCopied; added the app icon (`scripts/make-icon.swift` → `assets/`), wired into `build-app.sh`; renamed the GitHub repo.
 - 2026-10-27, session 2: created and pushed the private GitHub repo; built Phase 3, the menu bar app.
@@ -200,10 +208,10 @@ None. Q2 (re-hash before green) and Q3 (signing team) are still open; Q3 blocks 
 ## Handoff Notes
 
 1. **Building:** CopyCopied, a macOS menu bar app that proves camera cards are backed up, using content hashing and verified copies. Spec: `backed-build-prompt.md`.
-2. **Where we are:** Phases 0–3 are done, committed and pushed (`origin` = github.com/bythebug/copycopied, private). The CLI and menu bar app work against fake disk images.
-3. **Most recent:** the Phase 3 menu bar app and the walker false-green bug fix.
+2. **Where we are:** Phases 0–3 are done and pushed (`origin` = github.com/bythebug/copycopied, public). Version 0.3.0 has shipped via the `bythebug/tap` Homebrew cask and is installed on the user's Mac for testing.
+3. **Most recent:** the rename to CopyCopied, the app icon, the never-write-to-card guard, Homebrew release tooling, and the 0.3.0 release and install.
 4. **Remaining:** Phases 4–8, and answers to Q2–Q3.
-5. **Next:** Phase 4, shoots and folders (see Next Task).
+5. **Next:** collect the user's feedback on 0.3.0, then Phase 4, shoots and folders (see Next Task). Ship new versions with `scripts/release.sh <version>`.
 6. **Be careful:**
    - Safety rules beat features.
    - Never let a disconnected drive produce green.
@@ -213,3 +221,6 @@ None. Q2 (re-hash before green) and Q3 (signing team) are still open; Q3 blocks 
    - Don't add dependencies (GRDB, xcodegen, ArgumentParser) without asking.
    - Test shell loops that wait on files must have timeouts. Two hung in session 1; use a Python driver instead.
    - Detach fake images when done.
+   - The product name is CopyCopied. Never reintroduce "backed" as a brand (see CLAUDE.md).
+   - Cards stay writable (D7). CopyCopied never writes to a card, and card folders are refused as destinations.
+   - Releases are public. Run `scripts/release.sh` only when the user asks to ship.
